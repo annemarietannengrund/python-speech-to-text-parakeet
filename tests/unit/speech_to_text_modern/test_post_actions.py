@@ -31,7 +31,7 @@ class TestCopyToClipboard(BaseTestCase):
     @patch("audio.transcriptor_modern.post_actions.shutil.which", return_value=None)
     @patch("audio.transcriptor_modern.post_actions.subprocess.run")
     def test_no_tool_returns_failure_without_subprocess(
-        self, mock_run: Mock, _which: Mock
+            self, mock_run: Mock, _which: Mock
     ) -> None:
         result = copy_to_clipboard("hello")
         self.assertFalse(result.success)
@@ -60,7 +60,8 @@ class TestSendNotification(BaseTestCase):
     @patch("audio.transcriptor_modern.post_actions.shutil.which")
     @patch("audio.transcriptor_modern.post_actions.subprocess.run")
     def test_macos_prefers_terminal_notifier(self, mock_run: Mock, mock_which: Mock) -> None:
-        mock_which.side_effect = lambda name: f"/usr/local/bin/{name}" if name in {"terminal-notifier", "osascript"} else None
+        mock_which.side_effect = lambda name: f"/usr/local/bin/{name}" if name in {"terminal-notifier",
+                                                                                   "osascript"} else None
 
         result = send_notification("title", "msg")
 

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import TypeVar
 
 import numpy as np
+import soundfile as sf
 
 from audio.core import AudioFormat
 from audio.converter.interfaces.converter_protocols import AudioConverter
@@ -39,9 +40,47 @@ logger = logging.getLogger(__name__)
 _TICKER_INTERVAL: float = 0.1
 _MODEL_READY_HOLD: float = 0.4  # seconds the "Model ready" badge stays visible
 _TRANSCRIBING_MIN_VISIBLE: float = 0.6  # ensure the TRANSCRIBING phase is perceivable
-                                        # even when inference finishes in < 1s
+# even when inference finishes in < 1s
 
 T = TypeVar("T")
+
+
+class RollingChunkCollector:
+    """Accumulates recorded audio and tracks completed fixed-size chunks.
+
+    During recording the ``ModernRecorder`` calls ``push(samples)`` for
+    every sounddevice callback block.  When enough samples have
+    accumulated to fill a chunk the chunk is stored in
+    ``completed_chunks`` so the processor can dispatch background
+    transcription jobs while recording is still in progress.
+
+    The remaining (tail) samples that did not fill a full chunk are
+    available via ``tail`` after recording stops.
+    """
+
+    def __init__(self, samplerate: int, chunk_seconds: int) -> None:
+        self._samplerate = samplerate
+        self._chunk_samples = samplerate * chunk_seconds
+        self._buffer: list[np.ndarray] = []
+        self._buffer_len: int = 0
+        self.completed_chunks: list[np.ndarray] = []
+
+    def push(self, samples: np.ndarray) -> None:
+        self._buffer.append(samples)
+        self._buffer_len += len(samples)
+        while self._buffer_len >= self._chunk_samples:
+            full = np.concatenate(self._buffer, axis=0)
+            self.completed_chunks.append(full[: self._chunk_samples])
+            remainder = full[self._chunk_samples :]
+            self._buffer = [remainder] if remainder.size else []
+            self._buffer_len = len(remainder)
+
+    @property
+    def tail(self) -> np.ndarray:
+        """Samples recorded after the last completed chunk."""
+        if not self._buffer:
+            return np.array([], dtype=np.float32)
+        return np.concatenate(self._buffer, axis=0)
 
 
 @dataclass
@@ -53,7 +92,8 @@ class _Outcome:
 class ElapsedTicker:
     """Background thread that updates `state.elapsed_seconds` until stopped."""
 
-    def __init__(self, state: UIState, presenter: LivePresenter | NullPresenter, interval: float = _TICKER_INTERVAL) -> None:
+    def __init__(self, state: UIState, presenter: LivePresenter | NullPresenter,
+                 interval: float = _TICKER_INTERVAL) -> None:
         self._state = state
         self._presenter = presenter
         self._interval = interval
@@ -125,12 +165,12 @@ class ModernSpeechToTextProcessor:
     """High-level orchestrator for the modern CLI."""
 
     def __init__(
-        self,
-        transcription_service_factory: TranscriptionServiceFactory,
-        exporter: AudioExporter,
-        presenter: LivePresenter | NullPresenter,
-        state: UIState,
-        converter: AudioConverter | None = None,
+            self,
+            transcription_service_factory: TranscriptionServiceFactory,
+            exporter: AudioExporter,
+            presenter: LivePresenter | NullPresenter,
+            state: UIState,
+            converter: AudioConverter | None = None,
     ) -> None:
         self._service_factory = transcription_service_factory
         self._exporter = exporter
@@ -151,7 +191,14 @@ class ModernSpeechToTextProcessor:
 
         service_job = self._start_service_job()
 
-        audio = self._record(recording_config)
+        # Start rolling-chunk transcription during recording when threshold > 0.
+        # Chunks are dispatched to background jobs as they fill up; the service
+        # is loaded in parallel so it is ready by the time the first chunk lands.
+        chunk_collector = RollingChunkCollector(
+            samplerate=recording_config.samplerate,
+            chunk_seconds=config.chunk_max_seconds,
+        )
+        audio = self._record(recording_config, chunk_collector=chunk_collector)
         if audio.size == 0:
             self._state.phase = Phase.ERROR
             self._state.message = "no audio captured"
@@ -169,11 +216,26 @@ class ModernSpeechToTextProcessor:
         self._state.level = 0.0
         self._presenter.refresh()
         started = time.monotonic()
-        transcribe_job: BackgroundJob[str] = BackgroundJob(
-            lambda: service.transcribe(recording_path, model=config.model)
-        ).start()
-        self._drive_ui_until_done(transcribe_job, started)
-        transcript = transcribe_job.result()
+
+        # If recording was long enough to have produced pre-transcribed chunks,
+        # only the tail (last partial chunk) needs to be transcribed now.
+        completed_chunks = chunk_collector.completed_chunks
+        use_rolling = (
+            record_seconds > config.chunk_threshold_seconds
+            and completed_chunks
+        )
+        if use_rolling:
+            transcript = self._collect_rolling_transcript(
+                completed_chunks, chunk_collector, recording_path,
+                recording_config, config, service,
+            )
+        else:
+            transcribe_job: BackgroundJob[str] = BackgroundJob(
+                lambda: service.transcribe(recording_path, model=config.model)
+            ).start()
+            self._drive_ui_until_done(transcribe_job, started)
+            transcript = transcribe_job.result()
+
         transcribe_seconds = time.monotonic() - started
         # Guarantee the TRANSCRIBING phase stays on screen long enough
         # to be perceived even when inference is sub-second.
@@ -291,11 +353,11 @@ class ModernSpeechToTextProcessor:
             return None
 
     def _prepare_for_transcription(
-        self,
-        file_path: Path,
-        file_format: AudioFormat,
-        service: TranscriptionService,
-        config: TranscriptionConfig,
+            self,
+            file_path: Path,
+            file_format: AudioFormat,
+            service: TranscriptionService,
+            config: TranscriptionConfig,
     ) -> tuple[Path, Path | None]:
         if file_format in service.supported_input_formats:
             return file_path, None
@@ -360,19 +422,66 @@ class ModernSpeechToTextProcessor:
         self._state.elapsed_seconds = time.monotonic() - start_time
         self._presenter.refresh()
 
-    def _record(self, recording_config: RecordingConfig) -> np.ndarray:
+    def _record(
+        self,
+        recording_config: RecordingConfig,
+        chunk_collector: "RollingChunkCollector | None" = None,
+    ) -> np.ndarray:
         def on_level(level: float) -> None:
             self._state.level = level
 
         def on_pause(paused: bool) -> None:
             self._state.phase = Phase.PAUSED if paused else Phase.RECORDING
 
-        recorder = ModernRecorder(on_level=on_level, on_pause=on_pause)
+        def on_chunk(samples: np.ndarray) -> None:
+            if chunk_collector is not None:
+                chunk_collector.push(samples)
+
+        recorder = ModernRecorder(on_level=on_level, on_pause=on_pause, on_chunk=on_chunk)
         self._state.phase = Phase.RECORDING
         self._state.elapsed_seconds = 0.0
         self._presenter.refresh()
         with ElapsedTicker(self._state, self._presenter):
             return recorder.record(recording_config)
+
+    def _collect_rolling_transcript(
+        self,
+        completed_chunks: list[np.ndarray],
+        chunk_collector: "RollingChunkCollector",
+        recording_path: Path,
+        recording_config: "RecordingConfig",
+        config: "TranscriptionConfig",
+        service: TranscriptionService,
+    ) -> str:
+        """Wait for all pre-transcribed chunk jobs, transcribe the tail, join."""
+        import tempfile
+
+        fmt = recording_path.suffix.lstrip(".")
+        parts: list[str] = []
+
+        with tempfile.TemporaryDirectory(prefix="stt_rolling_") as tmp_dir:
+            tmp = Path(tmp_dir)
+
+            # Transcribe each completed chunk sequentially (model is single-threaded).
+            for i, chunk_audio in enumerate(completed_chunks):
+                chunk_path = tmp / f"chunk_{i:04d}.{fmt}"
+                sf.write(str(chunk_path), chunk_audio, recording_config.samplerate)
+                text = service.transcribe(chunk_path, model=config.model)
+                if text:
+                    parts.append(text)
+                self._state.elapsed_seconds = float(i + 1) / len(completed_chunks)
+                self._presenter.refresh()
+
+            # Transcribe the tail (samples after the last full chunk).
+            tail = chunk_collector.tail
+            if tail.size > 0:
+                tail_path = tmp / f"tail.{fmt}"
+                sf.write(str(tail_path), tail, recording_config.samplerate)
+                text = service.transcribe(tail_path, model=config.model)
+                if text:
+                    parts.append(text)
+
+        return " ".join(parts)
 
     def _cleanup(self, config: TranscriptionConfig, recording_path: Path, output_path: Path) -> None:
         if not (config.cleanup_audio or config.cleanup_transcription):

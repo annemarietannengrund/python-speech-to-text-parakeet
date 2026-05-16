@@ -64,8 +64,9 @@ class Recorder:
         print("\nRecording stopped.")
         if not self._audio_chunks:
             return np.array([], dtype=np.float32)
-        
+
         return np.concatenate(self._audio_chunks, axis=0)
+
 
 class Exporter:
     def export(self, data: np.ndarray, config: RecordingConfig) -> None:
@@ -87,21 +88,21 @@ class Exporter:
     def _export_with_ffmpeg(self, data: np.ndarray, config: RecordingConfig) -> None:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav:
             tmp_wav_name = tmp_wav.name
-        
+
         try:
             sf.write(tmp_wav_name, data, config.samplerate)
-            
+
             cmd = ["ffmpeg", "-y", "-i", tmp_wav_name]
-            
+
             if config.format == AudioFormat.MP3:
                 cmd.extend(["-codec:a", "libmp3lame", "-q:a", "2"])
             elif config.format == AudioFormat.OGG:
                 cmd.extend(["-codec:a", "libvorbis", "-q:a", "4"])
             elif config.format == AudioFormat.MP4:
                 cmd.extend(["-codec:a", "aac", "-b:a", "192k"])
-            
+
             cmd.append(config.filename)
-            
+
             logger.info("Running ffmpeg: %s", " ".join(cmd))
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             logger.info("Successfully exported to %s", config.filename)

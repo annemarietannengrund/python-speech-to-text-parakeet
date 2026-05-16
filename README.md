@@ -13,20 +13,20 @@ It exposes three CLIs:
 
 ```mermaid
 graph TD
-    subgraph Input ["📦 Input Layer"]
-        R[<b>audio-recorder</b><br/>Captures raw voice input]
+    subgraph Input [Input Layer]
+        R["audio-recorder\nCaptures raw voice input"]
     end
 
-    subgraph Processing ["⚙️ Processing Layer"]
-        C[<b>audio-converter</b><br/>Normalizes formats]
+    subgraph Processing [Processing Layer]
+        C["audio-converter\nNormalizes formats"]
     end
 
-    subgraph Core ["🧠 Core Intelligence"]
-        T[<b>audio-transcriptor</b><br/>Parakeet ASR Engine]
+    subgraph Core [Core Intelligence]
+        T["audio-transcriptor\nParakeet ASR Engine"]
     end
 
-    subgraph Interface ["🚀 User Interface"]
-        S[<b>speech-to-text</b><br/>Simplified CLI Access]
+    subgraph Interface [User Interface]
+        S["speech-to-text\nSimplified CLI Access"]
     end
 
     R --> C
@@ -37,7 +37,7 @@ graph TD
     style Processing fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
     style Core fill:#e8f5e9,stroke:#2e7d32,stroke-width:4px
     style Interface fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style T font-weight:bold,fill:#c8e6c9
+    style T fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px,color:#1b5e20
 ```
 
 ## Prerequisites

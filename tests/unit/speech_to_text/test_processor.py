@@ -1,7 +1,9 @@
 import unittest
-from unittest.mock import Mock, patch
 from pathlib import Path
+from unittest.mock import Mock, patch
+
 import numpy as np
+
 from audio.core import AudioFormat
 from audio.transcriptor.core import SpeechToTextProcessor
 from audio.transcriptor.models.transcription_config import TranscriptionConfig
@@ -17,7 +19,7 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         self.mock_recorder = Mock()
         self.mock_exporter = Mock()
         self.mock_logger = Mock()
-        
+
         self.mock_transcription_service_factory = Mock(return_value=self.mock_transcription_service)
         self.processor = SpeechToTextProcessor(
             transcription_service_factory=self.mock_transcription_service_factory,
@@ -35,13 +37,13 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_is_file.return_value = True
         mock_exists.return_value = False
         self.mock_transcription_service.transcribe.return_value = "transcribed text"
-        
+
         file_path = Path("test.wav")
         config = TranscriptionConfig(path=file_path)
-        
+
         # Execute
         self.processor.process(config)
-        
+
         # Verify
         self.mock_transcription_service.transcribe.assert_called_once_with(file_path, model=None)
         mock_write.assert_called_once_with("transcribed text", encoding="utf-8")
@@ -55,13 +57,13 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_is_file.return_value = True
         mock_exists.return_value = False
         self.mock_transcription_service.transcribe.return_value = "transcribed text"
-        
+
         file_path = Path("test.wav")
         config = TranscriptionConfig(path=file_path, model="tiny")
-        
+
         # Execute
         self.processor.process(config)
-        
+
         # Verify
         self.mock_transcription_service.transcribe.assert_called_once_with(file_path, model="tiny")
 
@@ -98,12 +100,12 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_cwd.return_value = Path("/tmp")
         self.mock_recorder.record.return_value = np.array([1, 2, 3])
         self.mock_transcription_service.transcribe.return_value = "recorded text"
-        
+
         config = TranscriptionConfig(record=True, persist_recording=True)
-        
+
         # Execute
         self.processor.process(config)
-        
+
         # Verify
         self.mock_recorder.record.assert_called_once()
         self.mock_exporter.export.assert_called_once()
@@ -141,13 +143,13 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_cwd.return_value = Path("/tmp")
         self.mock_recorder.record.return_value = np.array([1, 2, 3])
         self.mock_transcription_service.transcribe.return_value = "recorded text"
-        
+
         # Cleanup both audio and transcription
         config = TranscriptionConfig(record=True, cleanup_audio=True, cleanup_transcription=True)
-        
+
         # Execute
         self.processor.process(config)
-        
+
         # Verify
         # Should be called for audio and for transcription
         self.assertEqual(mock_unlink.call_count, 2)
@@ -161,13 +163,13 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_is_file.return_value = True
         mock_exists.return_value = False
         self.mock_transcription_service.transcribe.return_value = "text"
-        
+
         file_path = Path("test.wav")
         config = TranscriptionConfig(path=file_path, cleanup_audio=True)
-        
+
         # Execute
         self.processor.process(config)
-        
+
         # Verify
         mock_unlink.assert_called_once_with(missing_ok=True)
 
@@ -180,27 +182,27 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_is_file.return_value = True
         mock_exists.return_value = False
         self.mock_transcription_service.transcribe.return_value = "transcribed text"
-        
+
         file_path = Path("source/audio.wav")
         output_dir = Path("output_transcriptions")
         config = TranscriptionConfig(path=file_path, output_dir=output_dir)
-        
+
         # Execute
         # In process(), config.path.parent is passed as base_path for single files
         self.processor.process(config)
-        
+
         # Verify
         # Expected output path: output_dir / audio.txt (since base_path is source/)
         expected_output_path = output_dir / "audio.txt"
-        
+
         # Check if transcribe was called with the correct file
         self.mock_transcription_service.transcribe.assert_called_once_with(file_path, model=None)
-        
+
         # Check if write_text was called on the correct output path
         # We need to be careful with Path objects in mocks
         args, _ = mock_write.call_args
         self.assertEqual(args[0], "transcribed text")
-        
+
         # Verify mkdir was called for the output directory
         mock_mkdir.assert_called()
 
@@ -213,26 +215,26 @@ class TestSpeechToTextProcessor(unittest.TestCase):
         mock_is_dir.return_value = True
         mock_exists.return_value = False
         self.mock_transcription_service.transcribe.return_value = "text"
-        
+
         dir_path = Path("audio_dir")
         output_dir = Path("out_dir")
         config = TranscriptionConfig(path=dir_path, output_dir=output_dir, recursive=True)
-        
+
         # Mock files found in directory
         files = [dir_path / "sub" / "test.wav"]
-        
+
         with patch.object(self.processor, '_process_file', wraps=self.processor._process_file) as mock_process_file:
             with patch("pathlib.Path.rglob") as mock_rglob:
                 # We mock rglob for one of the formats to return our file
                 mock_rglob.side_effect = lambda p: files if "*.wav" in p else []
-                
+
                 # Execute
                 self.processor.process(config)
-                
+
                 # Verify
                 # _process_file should be called with base_path=dir_path
                 mock_process_file.assert_called_with(files[0], config, dir_path)
-                
+
                 # Check output path calculation in _process_file
                 expected_output_path = output_dir / "sub" / "test.txt"
                 # The actual write_text call should be on this path
@@ -244,7 +246,7 @@ class TestSpeechToTextProcessor(unittest.TestCase):
     @patch("pathlib.Path.write_text")
     @patch("pathlib.Path.unlink")
     def test_preconversion_when_format_unsupported_by_service(
-        self, mock_unlink, mock_write, mock_exists, mock_is_file
+            self, mock_unlink, mock_write, mock_exists, mock_is_file
     ):
         mock_is_file.return_value = True
         mock_exists.return_value = False
@@ -260,7 +262,7 @@ class TestSpeechToTextProcessor(unittest.TestCase):
     @patch("pathlib.Path.exists")
     @patch("pathlib.Path.write_text")
     def test_no_preconversion_when_format_supported_by_service(
-        self, mock_write, mock_exists, mock_is_file
+            self, mock_write, mock_exists, mock_is_file
     ):
         mock_is_file.return_value = True
         mock_exists.return_value = False

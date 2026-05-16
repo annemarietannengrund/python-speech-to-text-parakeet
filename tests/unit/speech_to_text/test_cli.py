@@ -1,7 +1,9 @@
 import unittest
 from unittest.mock import Mock
-from audio.transcriptor.cli import SpeechToTextCLI
+
 from audio.core import SpeechToTextSettings
+from audio.transcriptor.cli import SpeechToTextCLI
+
 
 class TestSpeechToTextCLI(unittest.TestCase):
     def setUp(self):
@@ -13,7 +15,7 @@ class TestSpeechToTextCLI(unittest.TestCase):
     def test_cleanup_all_expands_to_both(self):
         import argparse
         from unittest.mock import patch
-        
+
         # We need to mock parse_args to return our desired values
         with patch('argparse.ArgumentParser.parse_args') as mock_parse:
             mock_parse.return_value = argparse.Namespace(
@@ -42,7 +44,7 @@ class TestSpeechToTextCLI(unittest.TestCase):
     def test_cleanup_audio_only(self):
         import argparse
         from unittest.mock import patch
-        
+
         with patch('argparse.ArgumentParser.parse_args') as mock_parse:
             mock_parse.return_value = argparse.Namespace(
                 path="test.wav",
@@ -63,6 +65,7 @@ class TestSpeechToTextCLI(unittest.TestCase):
             config = self.mock_processor.process.call_args[0][0]
             self.assertTrue(config.cleanup_audio)
             self.assertFalse(config.cleanup_transcription)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,8 +1,11 @@
 from unittest.mock import patch, MagicMock
+
 import numpy as np
-from tests.unit.test_helper import BaseTestCase
+
 from audio.recorder.core import Exporter
 from audio.recorder.models.audio_config import RecordingConfig, AudioFormat
+from tests.unit.test_helper import BaseTestCase
+
 
 class TestExporter(BaseTestCase):
     def setUp(self) -> None:
@@ -25,10 +28,11 @@ class TestExporter(BaseTestCase):
     @patch("subprocess.run")
     @patch("soundfile.write")
     @patch("os.remove")
-    def test_export_mp3_calls_ffmpeg(self, mock_remove: MagicMock, mock_sf_write: MagicMock, mock_run: MagicMock) -> None:
+    def test_export_mp3_calls_ffmpeg(self, mock_remove: MagicMock, mock_sf_write: MagicMock,
+                                     mock_run: MagicMock) -> None:
         config = RecordingConfig(filename="test.mp3", format=AudioFormat.MP3)
         self.exporter.export(self.mock_data, config)
-        
+
         # Check if soundfile.write was called for temp file
         self.assertTrue(mock_sf_write.called)
         # Check if subprocess.run was called for ffmpeg

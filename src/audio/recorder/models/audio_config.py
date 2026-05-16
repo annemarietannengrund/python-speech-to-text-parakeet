@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from audio.core import AudioFormat
 
+
 @dataclass(frozen=True)
 class RecordingConfig:
     filename: str

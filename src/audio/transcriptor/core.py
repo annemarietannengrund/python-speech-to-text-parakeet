@@ -14,6 +14,7 @@ from audio.transcriptor.models.transcription_config import TranscriptionConfig
 
 TranscriptionServiceFactory = Callable[[], TranscriptionService]
 
+
 class SpeechToTextProcessor:
     SUPPORTED_INPUT_FORMATS: Set[AudioFormat] = {
         AudioFormat.MP3,
@@ -25,12 +26,12 @@ class SpeechToTextProcessor:
     }
 
     def __init__(
-        self,
-        transcription_service_factory: TranscriptionServiceFactory,
-        converter: AudioConverter,
-        recorder: AudioRecorder,
-        exporter: AudioExporter,
-        logger: logging.Logger
+            self,
+            transcription_service_factory: TranscriptionServiceFactory,
+            converter: AudioConverter,
+            recorder: AudioRecorder,
+            exporter: AudioExporter,
+            logger: logging.Logger
     ) -> None:
         self._transcription_service_factory = transcription_service_factory
         self._transcription_service: TranscriptionService | None = None
@@ -66,27 +67,27 @@ class SpeechToTextProcessor:
         timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M")
         filename = f"{timestamp}.{recording_format.value}"
         recording_path = Path.cwd() / filename
-        
+
         recording_config = RecordingConfig(
             filename=str(recording_path),
             format=recording_format,
             samplerate=44100,
             channels=1
         )
-        
+
         try:
             self.logger.info("Starting recording...")
             data = self.recorder.record(recording_config)
             if data.size > 0:
                 self.exporter.export(data, recording_config)
                 self.logger.info("Recording saved to %s", recording_path)
-                
+
                 # Transcribe
                 text = self.transcription_service.transcribe(
                     recording_path,
                     model=config.model
                 )
-                
+
                 # Output
                 output_path = recording_path.with_suffix(f".{config.output_format}")
                 if config.output_dir:
@@ -96,11 +97,11 @@ class SpeechToTextProcessor:
                 output_path.write_text(text, encoding="utf-8")
                 self.logger.info("Transcription saved to %s", output_path)
                 print(f"\nTranscription:\n{text}")
-                
+
                 if config.cleanup_audio:
                     self.logger.info("Deleting recording %s", recording_path)
                     recording_path.unlink(missing_ok=True)
-                
+
                 if config.cleanup_transcription:
                     self.logger.info("Deleting transcription %s", output_path)
                     output_path.unlink(missing_ok=True)
@@ -117,7 +118,7 @@ class SpeechToTextProcessor:
                 files.extend(directory.rglob(pattern))
             else:
                 files.extend(directory.glob(pattern))
-        
+
         if not files:
             self.logger.warning("No supported audio files found in %s", directory)
             return
@@ -130,7 +131,7 @@ class SpeechToTextProcessor:
 
     def _process_file(self, file_path: Path, config: TranscriptionConfig, base_path: Path) -> None:
         output_path = file_path.with_suffix(f".{config.output_format}")
-        
+
         if config.output_dir:
             relative_path = file_path.relative_to(base_path)
             output_path = config.output_dir / relative_path.with_suffix(f".{config.output_format}")
@@ -139,14 +140,14 @@ class SpeechToTextProcessor:
         if output_path.exists() and not config.no_skip:
             self.logger.info("Skipping %s as output already exists.", file_path)
             return
-        
+
         if output_path.exists() and config.no_skip:
             self.logger.warning("Overwriting existing transcription for %s", file_path)
 
         # Handle conversion if needed
         transcribe_path = file_path
         temp_file: Path | None = None
-        
+
         file_ext_str = file_path.suffix.lower().lstrip('.')
         try:
             file_format = AudioFormat(file_ext_str)
@@ -183,7 +184,7 @@ class SpeechToTextProcessor:
             if config.cleanup_transcription:
                 self.logger.info("Deleting transcription %s", output_path)
                 output_path.unlink(missing_ok=True)
-            
+
             if config.cleanup_audio:
                 self.logger.info("Deleting audio file %s", file_path)
                 file_path.unlink(missing_ok=True)

@@ -57,22 +57,22 @@ class TestParakeetTranscriptionService(unittest.TestCase):
 class TestResolveDevice(unittest.TestCase):
     def test_override_wins(self):
         with patch(
-            "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
-            return_value=True,
+                "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
+                return_value=True,
         ):
             self.assertEqual(resolve_device("cuda"), "cuda")
 
     def test_mps_when_available(self):
         with patch(
-            "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
-            return_value=True,
+                "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
+                return_value=True,
         ):
             self.assertEqual(resolve_device(None), "mps")
 
     def test_cpu_fallback(self):
         with patch(
-            "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
-            return_value=False,
+                "audio.transcriptor.services.parakeet_service.torch.backends.mps.is_available",
+                return_value=False,
         ):
             self.assertEqual(resolve_device(None), "cpu")
 

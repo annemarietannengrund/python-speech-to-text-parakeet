@@ -8,6 +8,7 @@ from audio.core import RecordAudioSettings, load_settings
 from audio.recorder.models.audio_config import RecordingConfig
 from audio.recorder.interfaces.audio_protocols import AudioRecorder, AudioExporter
 
+
 def setup_logging() -> logging.Logger:
     logger = logging.getLogger("record_audio")
     logger.setLevel(logging.INFO)
@@ -17,15 +18,16 @@ def setup_logging() -> logging.Logger:
     logger.addHandler(handler)
     return logger
 
+
 class RecordAudioCLI:
     DEFAULT_DATE_FORMAT = "%Y-%m-%d-%H-%M"
 
     def __init__(
-        self,
-        recorder: AudioRecorder,
-        exporter: AudioExporter,
-        logger: logging.Logger,
-        settings: RecordAudioSettings
+            self,
+            recorder: AudioRecorder,
+            exporter: AudioExporter,
+            logger: logging.Logger,
+            settings: RecordAudioSettings
     ) -> None:
         self.recorder = recorder
         self.exporter = exporter
@@ -35,15 +37,18 @@ class RecordAudioCLI:
     def run(self) -> None:
         parser = argparse.ArgumentParser(description="Record audio to various formats.")
         parser.add_argument("filename", nargs="?", help="Output filename (optional)")
-        parser.add_argument("--format", choices=[f.value for f in AudioFormat], help=f"Output format (default: {self.settings.default_format.value})")
-        parser.add_argument("--samplerate", type=int, default=self.settings.default_samplerate, help=f"Samplerate (default: {self.settings.default_samplerate})")
-        parser.add_argument("--channels", type=int, default=self.settings.default_channels, help=f"Number of channels (default: {self.settings.default_channels})")
+        parser.add_argument("--format", choices=[f.value for f in AudioFormat],
+                            help=f"Output format (default: {self.settings.default_format.value})")
+        parser.add_argument("--samplerate", type=int, default=self.settings.default_samplerate,
+                            help=f"Samplerate (default: {self.settings.default_samplerate})")
+        parser.add_argument("--channels", type=int, default=self.settings.default_channels,
+                            help=f"Number of channels (default: {self.settings.default_channels})")
 
         args = parser.parse_args()
 
         audio_format = self._determine_format(args.filename, args.format)
         filename = args.filename or self._generate_default_filename(audio_format)
-        
+
         config = RecordingConfig(
             filename=filename,
             format=audio_format,
@@ -65,19 +70,21 @@ class RecordAudioCLI:
     def _determine_format(self, filename: str | None, format_arg: str | None) -> AudioFormat:
         if format_arg:
             return AudioFormat(format_arg)
-        
+
         if filename:
             extension = filename.split(".")[-1].lower()
             try:
                 return AudioFormat(extension)
             except ValueError:
-                self.logger.info("Could not determine format from extension, defaulting to %s", self.settings.default_format.value)
-        
+                self.logger.info("Could not determine format from extension, defaulting to %s",
+                                 self.settings.default_format.value)
+
         return self.settings.default_format
 
     def _generate_default_filename(self, audio_format: AudioFormat) -> str:
         timestamp = datetime.now().strftime(self.settings.date_format)
         return f"{timestamp}.{audio_format.value}"
+
 
 def main() -> None:
     settings = load_settings()
@@ -86,6 +93,7 @@ def main() -> None:
     exporter = Exporter()
     cli = RecordAudioCLI(recorder, exporter, logger, settings.record)
     cli.run()
+
 
 if __name__ == "__main__":
     main()

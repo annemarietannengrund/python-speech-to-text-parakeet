@@ -4,6 +4,7 @@ from pathlib import Path
 from audio.core.models import AudioFormat
 from audio.converter.models.conversion_config import ConversionConfig
 
+
 class FFmpegAudioConverter:
     def __init__(self) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -47,9 +48,9 @@ class FFmpegAudioConverter:
         input_dir = config.input_path
         output_dir = config.output_path
         pattern = f"*.{config.from_format.value}"
-        
+
         files = list(input_dir.rglob(pattern) if config.recursive else input_dir.glob(pattern))
-        
+
         if not files:
             self.logger.warning("No files with format %s found in %s", config.from_format, input_dir)
             return
@@ -57,22 +58,22 @@ class FFmpegAudioConverter:
         for input_file in files:
             relative_path = input_file.relative_to(input_dir)
             target_output_file = output_dir / relative_path.with_suffix(f".{config.to_format.value}")
-            
+
             target_output_file.parent.mkdir(parents=True, exist_ok=True)
-            
+
             if not self._should_overwrite(target_output_file):
                 self.logger.info("Skipping conversion of %s", input_file)
                 continue
-                
+
             self._execute_ffmpeg(input_file, target_output_file)
 
     def _should_overwrite(self, file_path: Path) -> bool:
         if not file_path.exists():
             return True
-        
+
         if not self._ask_on_overwrite:
             return True
-            
+
         response = input(f"File {file_path} already exists. Overwrite? [y/N] ").lower()
         return response == 'y'
 
@@ -86,7 +87,7 @@ class FFmpegAudioConverter:
             target_format = None
 
         cmd = ["ffmpeg", "-y", "-i", str(input_path)]
-        
+
         if target_format == AudioFormat.MP3:
             cmd.extend(["-codec:a", "libmp3lame", "-q:a", "2"])
         elif target_format == AudioFormat.OGG:
@@ -96,9 +97,9 @@ class FFmpegAudioConverter:
         elif target_format == AudioFormat.FLAC:
             cmd.extend(["-codec:a", "flac"])
         # WAV doesn't need special flags for basic conversion
-        
+
         cmd.append(str(output_path))
-        
+
         try:
             self.logger.info("Converting %s to %s", input_path, output_path)
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from audio.core.models import AudioFormat
 
+
 @dataclass(frozen=True)
 class ConversionConfig:
     input_path: Path

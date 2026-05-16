@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+
 class AudioFormat(StrEnum):
     MP3 = "mp3"
     OGG = "ogg"

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 LevelCallback = Callable[[float], None]
 PauseCallback = Callable[[bool], None]
 StopCallback = Callable[[], None]
+ChunkCallback = Callable[[np.ndarray], None]
 
 _LEVEL_FLOOR: float = 1e-6
 _LEVEL_REFERENCE: float = 0.3  # RMS at which the bar is "full"
@@ -37,14 +38,16 @@ class ModernRecorder:
     """
 
     def __init__(
-        self,
-        on_level: LevelCallback | None = None,
-        on_pause: PauseCallback | None = None,
-        on_stop: StopCallback | None = None,
+            self,
+            on_level: LevelCallback | None = None,
+            on_pause: PauseCallback | None = None,
+            on_stop: StopCallback | None = None,
+            on_chunk: ChunkCallback | None = None,
     ) -> None:
         self._on_level = on_level or (lambda _level: None)
         self._on_pause = on_pause or (lambda _paused: None)
         self._on_stop = on_stop or (lambda: None)
+        self._on_chunk = on_chunk or (lambda _samples: None)
         self._is_recording: bool = False
         self._is_paused: bool = False
         self._audio_chunks: list[np.ndarray] = []
@@ -57,18 +60,20 @@ class ModernRecorder:
         self._ctrl_held = False
 
         def audio_callback(
-            indata: np.ndarray,
-            frames: int,
-            time: object,
-            status: sd.CallbackFlags,
+                indata: np.ndarray,
+                frames: int,
+                time: object,
+                status: sd.CallbackFlags,
         ) -> None:
             if status:
                 logger.warning("Sounddevice status: %s", status)
             if not self._is_recording or self._is_paused:
                 self._on_level(0.0)
                 return
-            self._audio_chunks.append(indata.copy())
+            chunk = indata.copy()
+            self._audio_chunks.append(chunk)
             self._on_level(_rms_to_unit(indata))
+            self._on_chunk(chunk)
 
         def on_press(key: keyboard.Key | keyboard.KeyCode) -> None:
             if key in _CTRL_KEYS:
@@ -99,9 +104,9 @@ class ModernRecorder:
             listener_kwargs["win32_event_filter"] = _build_win32_filter()
 
         with sd.InputStream(
-            samplerate=config.samplerate,
-            channels=config.channels,
-            callback=audio_callback,
+                samplerate=config.samplerate,
+                channels=config.channels,
+                callback=audio_callback,
         ):
             with keyboard.Listener(on_press=on_press, on_release=on_release, **listener_kwargs) as listener:
                 listener.join()
@@ -109,8 +114,6 @@ class ModernRecorder:
         if not self._audio_chunks:
             return np.array([], dtype=np.float32)
         return np.concatenate(self._audio_chunks, axis=0)
-
-
 
 
 # macOS virtual key codes for keys we want to swallow while CTRL is held.

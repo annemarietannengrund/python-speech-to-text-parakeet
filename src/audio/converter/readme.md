@@ -7,11 +7,11 @@ A command-line tool for converting audio files between various formats (OGG, MP3
 - can convert audio files from one format to another
 - takes a input file, produces an output file
 - supported types (related to supported record_audio types)
-  - ogg
-  - mp3
-  - wav
-  - flac
-  - mp4
+    - ogg
+    - mp3
+    - wav
+    - flac
+    - mp4
 - has some list option of mapped formats
 - should be able to convert beteen all supported types (25 permutations)
 - can be given a inputfolder, will convet its contents (requires --from and --to mapping)
@@ -25,6 +25,7 @@ A command-line tool for converting audio files between various formats (OGG, MP3
 ## Usage (Intended)
 
 ### Single File Conversion
+
 ```bash
 # Explicit input and output
 audio-convert input.wav output.mp3
@@ -34,6 +35,7 @@ audio-convert input.wav --to mp3
 ```
 
 ### Bulk Folder Conversion
+
 Note: When processing a folder, `--from` and `--to` are mandatory.
 
 ```bash
@@ -45,6 +47,7 @@ audio-convert --input-folder ./archive --recursive --from wav --to ogg
 ```
 
 ### CLI Reference
+
 - `input`: Input file path.
 - `output`: Output file path.
 - `--input-folder`: Folder containing files to convert.

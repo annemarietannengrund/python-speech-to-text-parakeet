@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -44,10 +43,10 @@ class TestModernSpeechToTextProcessor(BaseTestCase):
     @patch("pathlib.Path.write_text")
     @patch("pathlib.Path.unlink")
     def test_full_run_writes_transcription_and_reaches_done(
-        self,
-        mock_unlink: Mock,
-        mock_write: Mock,
-        mock_recorder_cls: Mock,
+            self,
+            mock_unlink: Mock,
+            mock_write: Mock,
+            mock_recorder_cls: Mock,
     ) -> None:
         audio = np.ones(44100, dtype=np.float32)  # 1 second
         mock_recorder_cls.return_value = self._patch_recorder(audio)
@@ -81,10 +80,10 @@ class TestModernSpeechToTextProcessor(BaseTestCase):
     @patch("pathlib.Path.write_text")
     @patch("pathlib.Path.unlink")
     def test_cleanup_all_deletes_both_files(
-        self,
-        mock_unlink: Mock,
-        mock_write: Mock,
-        mock_recorder_cls: Mock,
+            self,
+            mock_unlink: Mock,
+            mock_write: Mock,
+            mock_recorder_cls: Mock,
     ) -> None:
         audio = np.ones(4410, dtype=np.float32)
         mock_recorder_cls.return_value = self._patch_recorder(audio)

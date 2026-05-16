@@ -13,14 +13,30 @@ class TestRegistry(unittest.TestCase):
             with patch("audio.transcriptor.services.parakeet_service.ParakeetTranscriptionService") as mock_parakeet:
                 mock_parakeet.return_value = "parakeet-instance"
                 service = build_transcription_service(settings)
-                mock_parakeet.assert_called_once_with(model="nvidia/parakeet-tdt-0.6b-v3", device=None)
+                mock_parakeet.assert_called_once_with(
+                    model="nvidia/parakeet-tdt-0.6b-v3",
+                    device=None,
+                    chunk_threshold_seconds=settings.chunk_threshold_seconds,
+                    chunk_max_seconds=settings.chunk_max_seconds,
+                    chunk_silence_ms=settings.chunk_silence_ms,
+                    chunk_silence_thresh_db=settings.chunk_silence_thresh_db,
+                    chunk_keep_silence_ms=settings.chunk_keep_silence_ms,
+                )
                 self.assertEqual(service, "parakeet-instance")
 
     def test_parakeet_factory_returns_parakeet_service(self):
         settings = SpeechToTextSettings(provider=TranscriptionProvider.PARAKEET, model="nvidia/parakeet-tdt-0.6b-v3")
         with patch("audio.transcriptor.services.parakeet_service.ParakeetTranscriptionService") as mock_parakeet:
             build_transcription_service(settings)
-            mock_parakeet.assert_called_once_with(model="nvidia/parakeet-tdt-0.6b-v3", device=None)
+            mock_parakeet.assert_called_once_with(
+                model="nvidia/parakeet-tdt-0.6b-v3",
+                device=None,
+                chunk_threshold_seconds=settings.chunk_threshold_seconds,
+                chunk_max_seconds=settings.chunk_max_seconds,
+                chunk_silence_ms=settings.chunk_silence_ms,
+                chunk_silence_thresh_db=settings.chunk_silence_thresh_db,
+                chunk_keep_silence_ms=settings.chunk_keep_silence_ms,
+            )
 
     def test_unknown_provider_raises(self):
         settings = SpeechToTextSettings.__new__(SpeechToTextSettings)

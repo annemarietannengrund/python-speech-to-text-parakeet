@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
+
 class BaseTestCase(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()

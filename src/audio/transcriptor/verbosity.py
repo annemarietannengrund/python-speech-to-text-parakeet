@@ -37,7 +37,6 @@ _QUIET_ENV: dict[str, str] = {
     "ONE_LOGGER_ENABLED": "false",
 }
 
-
 _state: dict[str, bool] = {"verbose": True}
 
 

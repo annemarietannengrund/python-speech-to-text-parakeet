@@ -13,7 +13,15 @@ def _build_parakeet(settings: SpeechToTextSettings) -> TranscriptionService:
     # service must remain deferrable so `speech-to-text --record` can start
     # recording before the transcription backend is initialized.
     from audio.transcriptor.services.parakeet_service import ParakeetTranscriptionService
-    return ParakeetTranscriptionService(model=settings.model, device=settings.device)
+    return ParakeetTranscriptionService(
+        model=settings.model,
+        device=settings.device,
+        chunk_threshold_seconds=settings.chunk_threshold_seconds,
+        chunk_max_seconds=settings.chunk_max_seconds,
+        chunk_silence_ms=settings.chunk_silence_ms,
+        chunk_silence_thresh_db=settings.chunk_silence_thresh_db,
+        chunk_keep_silence_ms=settings.chunk_keep_silence_ms,
+    )
 
 
 _FACTORIES: dict[TranscriptionProvider, ServiceFactory] = {

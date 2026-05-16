@@ -20,7 +20,6 @@ from rich.text import Text
 from audio.transcriptor_modern.models.audio_info import AudioInfo
 from audio.transcriptor_modern.models.ui_state import FinalSummary, Phase, UIState
 
-
 _PHASE_LABEL: dict[Phase, str] = {
     Phase.IDLE: "Idle",
     Phase.RECORDING: "🎤 Recording",
@@ -50,7 +49,7 @@ _STATIC_PHASES: frozenset[Phase] = frozenset({Phase.PAUSED})
 
 _PHASE_BADGE: dict[Phase, str] = {
     Phase.RECORDING: "✓",  # green check while actively capturing
-    Phase.PAUSED: "✗",     # red cross while paused
+    Phase.PAUSED: "✗",  # red cross while paused
 }
 
 _BADGE_STYLE: dict[Phase, str] = {
@@ -135,11 +134,11 @@ class LivePresenter:
     """
 
     def __init__(
-        self,
-        state: UIState,
-        console: Console | None = None,
-        renderer: Renderer | None = None,
-        refresh_per_second: int = 12,
+            self,
+            state: UIState,
+            console: Console | None = None,
+            renderer: Renderer | None = None,
+            refresh_per_second: int = 12,
     ) -> None:
         self.state = state
         self.console = console or Console()
@@ -176,10 +175,10 @@ class LivePresenter:
         return self
 
     def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
     ) -> None:
         with self._lock:
             self._stopped = True
@@ -255,10 +254,10 @@ class NullPresenter:
         return self
 
     def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
     ) -> None:
         return None
 

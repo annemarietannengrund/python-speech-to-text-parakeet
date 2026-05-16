@@ -134,6 +134,11 @@ def _build_config(args: argparse.Namespace, settings: SpeechToTextSettings) -> T
         model=args.model or settings.model,
         preconversion_format=settings.preconversion_format,
         recording_format=settings.preconversion_format,
+        chunk_threshold_seconds=settings.chunk_threshold_seconds,
+        chunk_max_seconds=settings.chunk_max_seconds,
+        chunk_silence_ms=settings.chunk_silence_ms,
+        chunk_silence_thresh_db=settings.chunk_silence_thresh_db,
+        chunk_keep_silence_ms=settings.chunk_keep_silence_ms,
     )
 
 
@@ -201,11 +206,11 @@ def _collect_files(path: Path, recursive: bool) -> list[Path]:
 
 
 def _run_file_mode(
-    processor: ModernSpeechToTextProcessor,
-    presenter: LivePresenter | NullPresenter,
-    config: TranscriptionConfig,
-    args: argparse.Namespace,
-    logger: logging.Logger,
+        processor: ModernSpeechToTextProcessor,
+        presenter: LivePresenter | NullPresenter,
+        config: TranscriptionConfig,
+        args: argparse.Namespace,
+        logger: logging.Logger,
 ) -> None:
     if config.path is None:
         raise ValueError("Path is required when not recording.")

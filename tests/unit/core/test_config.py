@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
-from audio.transcriptor.models.provider import TranscriptionProvider
 from audio.core.config import load_settings
 from audio.core.models import AudioFormat
+from audio.transcriptor.models.provider import TranscriptionProvider
 from tests.unit.test_helper import BaseTestCase
 
 
