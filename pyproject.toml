@@ -1,0 +1,43 @@
+[project]
+name = "python-speech-to-text-parakeet"
+version = "0.2.0"
+description = "Speech-to-text toolkit: audio recording, conversion, and Parakeet-based transcription."
+requires-python = ">=3.13"
+dependencies = [
+    "nemo_toolkit[asr]>=2.0.0",
+    "numpy>=2.3.5",
+    "pynput>=1.8.1",
+    "sounddevice>=0.5.5",
+    "soundfile>=0.13.1",
+    "python-dotenv>=1.2.1",
+    "rich>=13.0",
+]
+
+[tool.uv]
+# kaldialign 0.9.1 ships no macOS arm64 wheel; force 0.8.0 which builds
+# from source (needs `brew install cmake` + CMAKE_POLICY_VERSION_MINIMUM=3.5).
+override-dependencies = ["kaldialign==0.8.0"]
+
+[dependency-groups]
+dev = [
+    "pylint>=4.0.4",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+[project.scripts]
+audio-recorder = "audio.recorder.cli:main"
+audio-converter = "audio.converter.cli:main"
+audio-transcriptor = "audio.transcriptor.cli:main"
+
+speech-to-text = "audio.transcriptor.cli:main"
+speech-to-text-modern = "audio.transcriptor_modern.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/audio",
+]
